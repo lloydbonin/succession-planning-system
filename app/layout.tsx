@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Succession Planning System",
+  title: "Succession System",
   description: "HR Monitoring Dashboard",
   icons: {
     icon: "/person-icon.svg",

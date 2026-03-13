@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LayoutGrid, Users, Target, BookOpen } from "lucide-react";
 
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard" },
-  { name: "Employees", href: "/employees" },
-  { name: "Succession Pool", href: "/succession-pool" },
-  { name: "Training Records", href: "/training-records" },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutGrid },
+  { name: "Employees", href: "/employees", icon: Users },
+  { name: "Succession Pool", href: "/succession-pool", icon: Target },
+  { name: "Training Records", href: "/training-records", icon: BookOpen },
 ];
 
 export default function Sidebar() {
@@ -43,18 +44,20 @@ export default function Sidebar() {
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
+          const Icon = item.icon;
 
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`block rounded-xl px-4 py-3 text-sm font-medium transition
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition
               ${
                 isActive
                   ? "bg-slate-900 text-white"
                   : "text-slate-700 hover:bg-slate-100"
               }`}
             >
+              <Icon size={20} />
               {item.name}
             </Link>
           );
