@@ -67,11 +67,20 @@ export default function SuccessionPoolPage() {
   return (
     <AppShell>
       <div className="space-y-6 text-black">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Succession Pool</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Track succession candidates, readiness, and development progress.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Succession Pool</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Track succession candidates, readiness, and development progress.
+            </p>
+          </div>
+
+          <Link
+            href="/succession-pool/add"
+            className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          >
+            + Add Candidate
+          </Link>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

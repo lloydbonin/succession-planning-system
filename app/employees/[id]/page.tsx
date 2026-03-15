@@ -59,8 +59,17 @@ export default async function EmployeeProfilePage({
               </div>
             </div>
 
-            <div className="rounded-full bg-amber-100 px-4 py-2 text-sm font-medium text-amber-700">
-              {employee.readiness}
+            <div className="flex flex-col items-start gap-3 md:items-end">
+              <div className="rounded-full bg-amber-100 px-4 py-2 text-sm font-medium text-amber-700">
+                {employee.readiness}
+              </div>
+
+              <Link
+                href={`/employees/${employee.id}/edit`}
+                className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              >
+                Edit Profile
+              </Link>
             </div>
           </div>
         </div>

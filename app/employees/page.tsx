@@ -55,11 +55,20 @@ export default function EmployeesPage() {
   return (
     <AppShell>
       <div className="space-y-6 text-black">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Employees</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            View and manage employee succession profiles.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Employees</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              View and manage employee succession profiles.
+            </p>
+          </div>
+
+          <Link
+            href="/employees/add"
+            className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          >
+            + Add Employee
+          </Link>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

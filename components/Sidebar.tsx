@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Users, Target, BookOpen } from "lucide-react";
+import { LayoutGrid, Users, Target, BookOpen, BarChart3} from "lucide-react";
 
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { name: "Employees", href: "/employees", icon: Users },
   { name: "Succession Pool", href: "/succession-pool", icon: Target },
   { name: "Training Records", href: "/training-records", icon: BookOpen },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
 ];
 
 export default function Sidebar() {
