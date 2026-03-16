@@ -1,25 +1,102 @@
 "use client";
 
 import AppShell from "@/components/Appshell";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type EmployeeOption = {
+  id: string;
+  employee_id: string;
+  name: string;
+  department: string;
+  current_position: string;
+  target_role: string;
+  readiness: string;
+  progress: number;
+};
 
 export default function AddCandidatePage() {
   const router = useRouter();
 
-  const [name, setName] = useState("");
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [department, setDepartment] = useState("");
   const [currentPosition, setCurrentPosition] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [talentRank, setTalentRank] = useState("High Potential");
   const [readiness, setReadiness] = useState("Ready in 1–2 Years");
   const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState("In Development");
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    async function loadEmployees() {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, employee_id, name, department, current_position, target_role, readiness, progress")
+        .order("name", { ascending: true });
+
+      if (error) {
+        console.error("Error loading employees:", error.message);
+      } else {
+        setEmployees(data || []);
+      }
+
+      setLoadingEmployees(false);
+    }
+
+    loadEmployees();
+  }, []);
+
+  function handleEmployeeChange(employeeRowId: string) {
+    setSelectedEmployeeId(employeeRowId);
+
+    const selected = employees.find((emp) => emp.id === employeeRowId);
+    if (!selected) return;
+
+    setDepartment(selected.department ?? "");
+    setCurrentPosition(selected.current_position ?? "");
+    setTargetRole(selected.target_role ?? "");
+    setReadiness(selected.readiness ?? "Ready in 1–2 Years");
+    setProgress(selected.progress ?? 0);
+
+    if (selected.readiness === "Ready Now") {
+      setTalentRank("Ready Successor");
+      setStatus("Active");
+    } else if (selected.readiness === "Ready in 1–2 Years") {
+      setTalentRank("High Potential");
+      setStatus("In Development");
+    } else {
+      setTalentRank("Emerging Talent");
+      setStatus("In Development");
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
 
-    alert("Candidate added (prototype)");
+    const { error } = await supabase.from("succession_pool").insert([
+      {
+        employee_id: selectedEmployeeId,
+        target_role: targetRole,
+        readiness,
+        progress,
+        talent_rank: talentRank,
+        status,
+      },
+    ]);
 
+    setSaving(false);
+
+    if (error) {
+      alert(`Failed to add candidate: ${error.message}`);
+      return;
+    }
+
+    alert("Succession candidate added successfully.");
     router.push("/succession-pool");
   }
 
@@ -41,14 +118,24 @@ export default function AddCandidatePage() {
         >
           <div>
             <label className="text-sm font-medium text-slate-700">
-              Name
+              Select Employee
             </label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+            <select
+              value={selectedEmployeeId}
+              onChange={(e) => handleEmployeeChange(e.target.value)}
               className="mt-1 w-full rounded-xl border px-4 py-2"
               required
-            />
+              disabled={loadingEmployees}
+            >
+              <option value="">
+                {loadingEmployees ? "Loading employees..." : "Choose an employee"}
+              </option>
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name} ({employee.employee_id})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -59,7 +146,7 @@ export default function AddCandidatePage() {
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
               className="mt-1 w-full rounded-xl border px-4 py-2"
-              required
+              disabled
             />
           </div>
 
@@ -71,7 +158,7 @@ export default function AddCandidatePage() {
               value={currentPosition}
               onChange={(e) => setCurrentPosition(e.target.value)}
               className="mt-1 w-full rounded-xl border px-4 py-2"
-              required
+              disabled
             />
           </div>
 
@@ -91,7 +178,6 @@ export default function AddCandidatePage() {
             <label className="text-sm font-medium text-slate-700">
               Talent Rank
             </label>
-
             <select
               value={talentRank}
               onChange={(e) => setTalentRank(e.target.value)}
@@ -107,7 +193,6 @@ export default function AddCandidatePage() {
             <label className="text-sm font-medium text-slate-700">
               Readiness
             </label>
-
             <select
               value={readiness}
               onChange={(e) => setReadiness(e.target.value)}
@@ -123,20 +208,38 @@ export default function AddCandidatePage() {
             <label className="text-sm font-medium text-slate-700">
               Development Progress (%)
             </label>
-
             <input
               type="number"
+              min="0"
+              max="100"
               value={progress}
               onChange={(e) => setProgress(Number(e.target.value))}
               className="mt-1 w-full rounded-xl border px-4 py-2"
+              required
             />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">
+              Status
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="mt-1 w-full rounded-xl border px-4 py-2"
+            >
+              <option>Active</option>
+              <option>In Development</option>
+              <option>On Hold</option>
+            </select>
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-slate-800 py-2 text-white hover:bg-slate-700"
+            disabled={saving}
+            className="w-full rounded-xl bg-slate-800 py-2 text-white hover:bg-slate-700 disabled:opacity-60"
           >
-            Add Candidate
+            {saving ? "Saving..." : "Add Candidate"}
           </button>
         </form>
       </div>

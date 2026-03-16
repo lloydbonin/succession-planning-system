@@ -1,5 +1,5 @@
 import AppShell from "@/components/Appshell";
-import { employees } from "@/data/employees";
+import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
 type EmployeeProfilePageProps = {
@@ -13,9 +13,13 @@ export default async function EmployeeProfilePage({
 }: EmployeeProfilePageProps) {
   const { id } = await params;
 
-  const employee = employees.find((emp) => emp.id === id);
+  const { data: employee, error } = await supabase
+    .from("employees")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (!employee) {
+  if (error || !employee) {
     return (
       <AppShell>
         <div className="p-6 text-black">
@@ -54,7 +58,7 @@ export default async function EmployeeProfilePage({
                 <h1 className="text-3xl font-bold text-slate-800">
                   {employee.name}
                 </h1>
-                <p className="mt-1 text-slate-500">{employee.currentPosition}</p>
+                <p className="mt-1 text-slate-500">{employee.current_position}</p>
                 <p className="text-slate-500">{employee.department}</p>
               </div>
             </div>
@@ -83,10 +87,10 @@ export default async function EmployeeProfilePage({
             <div className="space-y-3 text-sm text-slate-700">
               <p>
                 <span className="font-semibold">Employee ID:</span>{" "}
-                {employee.employeeId}
+                {employee.employee_id}
               </p>
               <p>
-                <span className="font-semibold">Email:</span> {employee.email}
+                <span className="font-semibold">Email:</span> {employee.email || "—"}
               </p>
               <p>
                 <span className="font-semibold">Department:</span>{" "}
@@ -94,15 +98,15 @@ export default async function EmployeeProfilePage({
               </p>
               <p>
                 <span className="font-semibold">Current Position:</span>{" "}
-                {employee.currentPosition}
+                {employee.current_position}
               </p>
               <p>
                 <span className="font-semibold">Target Role:</span>{" "}
-                {employee.targetRole}
+                {employee.target_role}
               </p>
               <p>
                 <span className="font-semibold">Years of Service:</span>{" "}
-                {employee.yearsOfService}
+                {employee.years_of_service ?? "—"}
               </p>
             </div>
           </div>
@@ -119,7 +123,7 @@ export default async function EmployeeProfilePage({
               </p>
               <p>
                 <span className="font-semibold">Training Status:</span>{" "}
-                {employee.trainingStatus}
+                {employee.training_status}
               </p>
 
               <div>
@@ -139,7 +143,7 @@ export default async function EmployeeProfilePage({
               <div>
                 <span className="font-semibold">Development Plan:</span>
                 <p className="mt-2 text-slate-600">
-                  {employee.developmentPlan}
+                  {employee.development_plan || "No development plan yet."}
                 </p>
               </div>
             </div>

@@ -1,14 +1,85 @@
+"use client";
+
 import AppShell from "@/components/Appshell";
 import SummaryCard from "@/components/SummaryCard";
-import { employees } from "@/data/employees";
-import { successionPool } from "@/data/successionPool";
-import { trainingRecords } from "@/data/trainingRecords";
+import { supabase } from "@/lib/supabase";
+import { useEffect, useMemo, useState } from "react";
+
+type Employee = {
+  id: string;
+  department: string;
+};
+
+type SuccessionCandidate = {
+  id: string;
+  readiness: string;
+  employees: {
+    department: string;
+  } | null;
+};
+
+type TrainingRecord = {
+  id: string;
+  status: string;
+  employees: {
+    department: string;
+  } | null;
+};
 
 export default function ReportsPage() {
-  const totalEmployees = employees.length;
-  const totalCandidates = successionPool.length;
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [candidates, setCandidates] = useState<SuccessionCandidate[]>([]);
+  const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const readyNowCount = successionPool.filter(
+  useEffect(() => {
+    async function fetchReportsData() {
+      const [employeesRes, candidatesRes, trainingRes] = await Promise.all([
+        supabase.from("employees").select("id, department"),
+        supabase.from("succession_pool").select(`
+          id,
+          readiness,
+          employees (
+            department
+          )
+        `),
+        supabase.from("training_records").select(`
+          id,
+          status,
+          employees (
+            department
+          )
+        `),
+      ]);
+
+      if (employeesRes.error) {
+        console.error("Error fetching employees:", employeesRes.error.message);
+      } else {
+        setEmployees((employeesRes.data as Employee[]) || []);
+      }
+
+      if (candidatesRes.error) {
+        console.error("Error fetching candidates:", candidatesRes.error.message);
+      } else {
+        setCandidates((candidatesRes.data as unknown as SuccessionCandidate[]) || []);
+      }
+
+      if (trainingRes.error) {
+        console.error("Error fetching training records:", trainingRes.error.message);
+      } else {
+        setTrainingRecords((trainingRes.data as unknown as TrainingRecord[]) || []);
+      }
+
+      setLoading(false);
+    }
+
+    fetchReportsData();
+  }, []);
+
+  const totalEmployees = employees.length;
+  const totalCandidates = candidates.length;
+
+  const readyNowCount = candidates.filter(
     (candidate) => candidate.readiness === "Ready Now"
   ).length;
 
@@ -19,19 +90,18 @@ export default function ReportsPage() {
   const readinessSummary = [
     {
       label: "Ready Now",
-      count: successionPool.filter(
-        (candidate) => candidate.readiness === "Ready Now"
-      ).length,
+      count: candidates.filter((candidate) => candidate.readiness === "Ready Now")
+        .length,
     },
     {
       label: "Ready in 1–2 Years",
-      count: successionPool.filter(
+      count: candidates.filter(
         (candidate) => candidate.readiness === "Ready in 1–2 Years"
       ).length,
     },
     {
       label: "Ready in 3–5 Years",
-      count: successionPool.filter(
+      count: candidates.filter(
         (candidate) => candidate.readiness === "Ready in 3–5 Years"
       ).length,
     },
@@ -56,26 +126,29 @@ export default function ReportsPage() {
     },
   ];
 
-  const departments = [...new Set(employees.map((employee) => employee.department))];
+  const departments = useMemo(() => {
+    return [...new Set(employees.map((employee) => employee.department))];
+  }, [employees]);
 
   const departmentOverview = departments.map((department) => {
     const employeeCount = employees.filter(
       (employee) => employee.department === department
     ).length;
 
-    const candidateCount = successionPool.filter(
-      (candidate) => candidate.department === department
+    const candidateCount = candidates.filter(
+      (candidate) => candidate.employees?.department === department
     ).length;
 
-    const readyNowDepartmentCount = successionPool.filter(
+    const readyNowDepartmentCount = candidates.filter(
       (candidate) =>
-        candidate.department === department &&
+        candidate.employees?.department === department &&
         candidate.readiness === "Ready Now"
     ).length;
 
     const completedTrainingDepartmentCount = trainingRecords.filter(
       (record) =>
-        record.department === department && record.status === "Completed"
+        record.employees?.department === department &&
+        record.status === "Completed"
     ).length;
 
     return {
@@ -113,32 +186,36 @@ export default function ReportsPage() {
               Readiness Summary
             </h2>
 
-            <div className="space-y-4">
-              {readinessSummary.map((item) => {
-                const percentage =
-                  totalCandidates > 0
-                    ? Math.round((item.count / totalCandidates) * 100)
-                    : 0;
+            {loading ? (
+              <p className="text-sm text-slate-500">Loading readiness summary...</p>
+            ) : (
+              <div className="space-y-4">
+                {readinessSummary.map((item) => {
+                  const percentage =
+                    totalCandidates > 0
+                      ? Math.round((item.count / totalCandidates) * 100)
+                      : 0;
 
-                return (
-                  <div key={item.label}>
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="font-medium text-slate-700">
-                        {item.label}
-                      </span>
-                      <span className="text-slate-500">{item.count}</span>
-                    </div>
+                  return (
+                    <div key={item.label}>
+                      <div className="mb-2 flex items-center justify-between text-sm">
+                        <span className="font-medium text-slate-700">
+                          {item.label}
+                        </span>
+                        <span className="text-slate-500">{item.count}</span>
+                      </div>
 
-                    <div className="h-3 w-full rounded-full bg-slate-200">
-                      <div
-                        className="h-3 rounded-full bg-slate-800"
-                        style={{ width: `${percentage}%` }}
-                      />
+                      <div className="h-3 w-full rounded-full bg-slate-200">
+                        <div
+                          className="h-3 rounded-full bg-slate-800"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
@@ -146,32 +223,36 @@ export default function ReportsPage() {
               Training Status Summary
             </h2>
 
-            <div className="space-y-4">
-              {trainingSummary.map((item) => {
-                const percentage =
-                  trainingRecords.length > 0
-                    ? Math.round((item.count / trainingRecords.length) * 100)
-                    : 0;
+            {loading ? (
+              <p className="text-sm text-slate-500">Loading training summary...</p>
+            ) : (
+              <div className="space-y-4">
+                {trainingSummary.map((item) => {
+                  const percentage =
+                    trainingRecords.length > 0
+                      ? Math.round((item.count / trainingRecords.length) * 100)
+                      : 0;
 
-                return (
-                  <div key={item.label}>
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="font-medium text-slate-700">
-                        {item.label}
-                      </span>
-                      <span className="text-slate-500">{item.count}</span>
-                    </div>
+                  return (
+                    <div key={item.label}>
+                      <div className="mb-2 flex items-center justify-between text-sm">
+                        <span className="font-medium text-slate-700">
+                          {item.label}
+                        </span>
+                        <span className="text-slate-500">{item.count}</span>
+                      </div>
 
-                    <div className="h-3 w-full rounded-full bg-slate-200">
-                      <div
-                        className="h-3 rounded-full bg-slate-800"
-                        style={{ width: `${percentage}%` }}
-                      />
+                      <div className="h-3 w-full rounded-full bg-slate-200">
+                        <div
+                          className="h-3 rounded-full bg-slate-800"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -193,24 +274,38 @@ export default function ReportsPage() {
               </thead>
 
               <tbody>
-                {departmentOverview.map((item) => (
-                  <tr
-                    key={item.department}
-                    className="border-t border-slate-200"
-                  >
-                    <td className="px-6 py-4 font-medium text-slate-800">
-                      {item.department}
-                    </td>
-                    <td className="px-6 py-4">{item.employeeCount}</td>
-                    <td className="px-6 py-4">{item.candidateCount}</td>
-                    <td className="px-6 py-4">
-                      {item.readyNowDepartmentCount}
-                    </td>
-                    <td className="px-6 py-4">
-                      {item.completedTrainingDepartmentCount}
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                      Loading department overview...
                     </td>
                   </tr>
-                ))}
+                ) : departmentOverview.length > 0 ? (
+                  departmentOverview.map((item) => (
+                    <tr
+                      key={item.department}
+                      className="border-t border-slate-200"
+                    >
+                      <td className="px-6 py-4 font-medium text-slate-800">
+                        {item.department}
+                      </td>
+                      <td className="px-6 py-4">{item.employeeCount}</td>
+                      <td className="px-6 py-4">{item.candidateCount}</td>
+                      <td className="px-6 py-4">
+                        {item.readyNowDepartmentCount}
+                      </td>
+                      <td className="px-6 py-4">
+                        {item.completedTrainingDepartmentCount}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                      No report data found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

@@ -1,10 +1,28 @@
 "use client";
 
 import AppShell from "@/components/Appshell";
-import { successionPool } from "@/data/successionPool";
-import { useMemo, useState } from "react";
-import Link from "next/link";
 import SummaryCard from "@/components/SummaryCard";
+import { supabase } from "@/lib/supabase";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+
+type SuccessionCandidate = {
+  id: string;
+  employee_id: string;
+  target_role: string;
+  readiness: string;
+  progress: number;
+  talent_rank: string;
+  status: string;
+  created_at: string;
+  employees: {
+    id: string;
+    employee_id: string;
+    name: string;
+    department: string;
+    current_position: string;
+  } | null;
+};
 
 function getReadinessClasses(readiness: string) {
   if (readiness === "Ready Now") {
@@ -19,13 +37,52 @@ function getReadinessClasses(readiness: string) {
 }
 
 export default function SuccessionPoolPage() {
+  const [candidates, setCandidates] = useState<SuccessionCandidate[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [readinessFilter, setReadinessFilter] = useState("All");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCandidates() {
+      const { data, error } = await supabase
+        .from("succession_pool")
+        .select(
+          `
+            *,
+            employees (
+              id,
+              employee_id,
+              name,
+              department,
+              current_position
+            )
+          `
+        )
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching succession pool:", error.message);
+      } else {
+        setCandidates((data as SuccessionCandidate[]) || []);
+      }
+
+      setLoading(false);
+    }
+
+    fetchCandidates();
+  }, []);
 
   const departments = useMemo(() => {
-    return ["All", ...new Set(successionPool.map((candidate) => candidate.department))];
-  }, []);
+    return [
+      "All",
+      ...new Set(
+        candidates
+          .map((candidate) => candidate.employees?.department)
+          .filter(Boolean) as string[]
+      ),
+    ];
+  }, [candidates]);
 
   const readinessLevels = [
     "All",
@@ -35,32 +92,35 @@ export default function SuccessionPoolPage() {
   ];
 
   const filteredCandidates = useMemo(() => {
-    return successionPool.filter((candidate) => {
-      const matchesSearch = candidate.name
+    return candidates.filter((candidate) => {
+      const employeeName = candidate.employees?.name ?? "";
+      const employeeDepartment = candidate.employees?.department ?? "";
+
+      const matchesSearch = employeeName
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
       const matchesDepartment =
-        departmentFilter === "All" || candidate.department === departmentFilter;
+        departmentFilter === "All" || employeeDepartment === departmentFilter;
 
       const matchesReadiness =
         readinessFilter === "All" || candidate.readiness === readinessFilter;
 
       return matchesSearch && matchesDepartment && matchesReadiness;
     });
-  }, [searchTerm, departmentFilter, readinessFilter]);
+  }, [candidates, searchTerm, departmentFilter, readinessFilter]);
 
-  const totalCandidates = successionPool.length;
+  const totalCandidates = candidates.length;
 
-  const readyNowCount = successionPool.filter(
+  const readyNowCount = candidates.filter(
     (candidate) => candidate.readiness === "Ready Now"
   ).length;
 
-  const highPotentialCount = successionPool.filter(
-    (candidate) => candidate.talentRank === "High Potential"
+  const highPotentialCount = candidates.filter(
+    (candidate) => candidate.talent_rank === "High Potential"
   ).length;
 
-  const inDevelopmentCount = successionPool.filter(
+  const inDevelopmentCount = candidates.filter(
     (candidate) => candidate.status === "In Development"
   ).length;
 
@@ -154,7 +214,13 @@ export default function SuccessionPoolPage() {
             </thead>
 
             <tbody>
-              {filteredCandidates.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                    Loading succession candidates...
+                  </td>
+                </tr>
+              ) : filteredCandidates.length > 0 ? (
                 filteredCandidates.map((candidate) => (
                   <tr
                     key={candidate.id}
@@ -162,17 +228,23 @@ export default function SuccessionPoolPage() {
                   >
                     <td className="px-6 py-4">
                       <Link
-                        href={`/employees/${candidate.id}`}
+                        href={`/employees/${candidate.employee_id}`}
                         className="font-medium text-blue-600 hover:underline"
                       >
-                        {candidate.name}
+                        {candidate.employees?.name ?? "Unknown Employee"}
                       </Link>
                     </td>
 
-                    <td className="px-6 py-4">{candidate.department}</td>
-                    <td className="px-6 py-4">{candidate.currentPosition}</td>
-                    <td className="px-6 py-4">{candidate.targetRole}</td>
-                    <td className="px-6 py-4">{candidate.talentRank}</td>
+                    <td className="px-6 py-4">
+                      {candidate.employees?.department ?? "—"}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {candidate.employees?.current_position ?? "—"}
+                    </td>
+
+                    <td className="px-6 py-4">{candidate.target_role}</td>
+                    <td className="px-6 py-4">{candidate.talent_rank}</td>
 
                     <td className="px-6 py-4">
                       <span

@@ -1,19 +1,56 @@
 "use client";
 
 import AppShell from "@/components/Appshell";
-import { employees } from "@/data/employees";
-import { useMemo, useState } from "react";
-import Link from "next/link";
 import SummaryCard from "@/components/SummaryCard";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
+
+type Employee = {
+  id: string;
+  employee_id: string;
+  name: string;
+  department: string;
+  current_position: string;
+  target_role: string;
+  readiness: string;
+  training_status: string;
+  progress: number;
+  years_of_service: number | null;
+  email: string | null;
+  development_plan: string | null;
+  created_at: string;
+};
 
 export default function EmployeesPage() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [readinessFilter, setReadinessFilter] = useState("All");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchEmployees() {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching employees:", error.message);
+      } else {
+        setEmployees(data || []);
+      }
+
+      setLoading(false);
+    }
+
+    fetchEmployees();
+  }, []);
 
   const departments = useMemo(() => {
     return ["All", ...new Set(employees.map((employee) => employee.department))];
-  }, []);
+  }, [employees]);
 
   const readinessLevels = [
     "All",
@@ -36,7 +73,7 @@ export default function EmployeesPage() {
 
       return matchesSearch && matchesDepartment && matchesReadiness;
     });
-  }, [searchTerm, departmentFilter, readinessFilter]);
+  }, [employees, searchTerm, departmentFilter, readinessFilter]);
 
   const totalEmployees = employees.length;
 
@@ -141,13 +178,19 @@ export default function EmployeesPage() {
             </thead>
 
             <tbody>
-              {filteredEmployees.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                    Loading employees...
+                  </td>
+                </tr>
+              ) : filteredEmployees.length > 0 ? (
                 filteredEmployees.map((employee) => (
                   <tr
                     key={employee.id}
                     className="border-t border-slate-200 hover:bg-slate-50"
                   >
-                    <td className="px-6 py-4">{employee.employeeId}</td>
+                    <td className="px-6 py-4">{employee.employee_id}</td>
                     <td className="px-6 py-4">
                       <Link
                         href={`/employees/${employee.id}`}
@@ -157,8 +200,8 @@ export default function EmployeesPage() {
                       </Link>
                     </td>
                     <td className="px-6 py-4">{employee.department}</td>
-                    <td className="px-6 py-4">{employee.currentPosition}</td>
-                    <td className="px-6 py-4">{employee.targetRole}</td>
+                    <td className="px-6 py-4">{employee.current_position}</td>
+                    <td className="px-6 py-4">{employee.target_role}</td>
                     <td className="px-6 py-4">{employee.readiness}</td>
                   </tr>
                 ))

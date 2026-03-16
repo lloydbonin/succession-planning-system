@@ -1,13 +1,23 @@
 "use client";
 
 import AppShell from "@/components/Appshell";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type EmployeeOption = {
+  id: string;
+  employee_id: string;
+  name: string;
+  department: string;
+  target_role: string;
+};
 
 export default function AddTrainingRecordPage() {
   const router = useRouter();
 
-  const [employeeName, setEmployeeName] = useState("");
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [department, setDepartment] = useState("");
   const [trainingTitle, setTrainingTitle] = useState("");
   const [trainingCategory, setTrainingCategory] = useState("Leadership");
@@ -15,12 +25,62 @@ export default function AddTrainingRecordPage() {
   const [status, setStatus] = useState("Not Started");
   const [progress, setProgress] = useState(0);
   const [completionDate, setCompletionDate] = useState("");
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    async function loadEmployees() {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, employee_id, name, department, target_role")
+        .order("name", { ascending: true });
+
+      if (error) {
+        console.error("Error loading employees:", error.message);
+      } else {
+        setEmployees(data || []);
+      }
+
+      setLoadingEmployees(false);
+    }
+
+    loadEmployees();
+  }, []);
+
+  function handleEmployeeChange(employeeRowId: string) {
+    setSelectedEmployeeId(employeeRowId);
+
+    const selected = employees.find((emp) => emp.id === employeeRowId);
+    if (!selected) return;
+
+    setDepartment(selected.department ?? "");
+    setTargetRole(selected.target_role ?? "");
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
 
-    alert("Training record added (prototype).");
+    const { error } = await supabase.from("training_records").insert([
+      {
+        employee_id: selectedEmployeeId,
+        training_title: trainingTitle,
+        training_category: trainingCategory,
+        target_role: targetRole,
+        status,
+        progress,
+        completion_date: completionDate || null,
+      },
+    ]);
 
+    setSaving(false);
+
+    if (error) {
+      alert(`Failed to add training record: ${error.message}`);
+      return;
+    }
+
+    alert("Training record added successfully.");
     router.push("/training-records");
   }
 
@@ -42,14 +102,24 @@ export default function AddTrainingRecordPage() {
         >
           <div>
             <label className="text-sm font-medium text-slate-700">
-              Employee Name
+              Select Employee
             </label>
-            <input
-              value={employeeName}
-              onChange={(e) => setEmployeeName(e.target.value)}
+            <select
+              value={selectedEmployeeId}
+              onChange={(e) => handleEmployeeChange(e.target.value)}
               className="mt-1 w-full rounded-xl border px-4 py-2"
               required
-            />
+              disabled={loadingEmployees}
+            >
+              <option value="">
+                {loadingEmployees ? "Loading employees..." : "Choose an employee"}
+              </option>
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name} ({employee.employee_id})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -60,7 +130,7 @@ export default function AddTrainingRecordPage() {
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
               className="mt-1 w-full rounded-xl border px-4 py-2"
-              required
+              disabled
             />
           </div>
 
@@ -148,9 +218,10 @@ export default function AddTrainingRecordPage() {
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-slate-800 py-2 text-white hover:bg-slate-700"
+            disabled={saving}
+            className="w-full rounded-xl bg-slate-800 py-2 text-white hover:bg-slate-700 disabled:opacity-60"
           >
-            Add Training Record
+            {saving ? "Saving..." : "Add Training Record"}
           </button>
         </form>
       </div>
