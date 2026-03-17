@@ -18,7 +18,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex min-h-screen w-64 flex-col border-r border-slate-200 bg-white">
+    <aside className="flex h-screen sticky top-0 w-64 flex-col border-r border-slate-200 bg-white">
       
       {/* Logo / System Name */}
       <div className="border-b border-slate-200 px-6 py-5">
@@ -66,7 +66,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-slate-200 p-4 text-sm text-slate-500">
+      <div className="mt-auto border-t border-slate-200 p-4 text-sm text-slate-500">
         HRMDO System v1.0
       </div>
     </aside>
