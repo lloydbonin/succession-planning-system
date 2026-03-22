@@ -31,7 +31,7 @@ export default function LoginPage() {
             />
           </div>
           <h1 className="text-3xl font-bold text-slate-800">
-            Succession Planning System
+            Succession Plan Monitoring System
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             Sign in using your AdDU Gmail account.

@@ -67,7 +67,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="mt-auto border-t border-slate-200 p-4 text-sm text-slate-500">
-        HRMDO System v1.0
+        HR Monitoring System v1.0
       </div>
     </aside>
   );

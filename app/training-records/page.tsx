@@ -5,6 +5,7 @@ import SummaryCard from "@/components/SummaryCard";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useAuthorizedUser } from "@/hooks/useAuthorizedUser";
 
 type TrainingRecord = {
   id: string;
@@ -29,6 +30,7 @@ export default function TrainingRecordsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuthorizedUser();
 
   useEffect(() => {
     async function fetchTrainingRecords() {
@@ -101,12 +103,14 @@ export default function TrainingRecordsPage() {
             </p>
           </div>
 
-          <Link
-            href="/training-records/add"
-            className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
-            + Add Training
-          </Link>
+          {!authLoading && user && user.role !== "viewer" && (
+            <Link
+              href="/training-records/add"
+              className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              + Add Training
+            </Link>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -5,6 +5,7 @@ import SummaryCard from "@/components/SummaryCard";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useAuthorizedUser } from "@/hooks/useAuthorizedUser";
 
 type SuccessionCandidate = {
   id: string;
@@ -42,6 +43,7 @@ export default function SuccessionPoolPage() {
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [readinessFilter, setReadinessFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuthorizedUser();
 
   useEffect(() => {
     async function fetchCandidates() {
@@ -135,12 +137,14 @@ export default function SuccessionPoolPage() {
             </p>
           </div>
 
-          <Link
-            href="/succession-pool/add"
-            className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
-            + Add Candidate
-          </Link>
+          {!authLoading && user && user.role !== "viewer" && (
+            <Link
+              href="/succession-pool/add"
+              className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              + Add Candidate
+            </Link>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -5,6 +5,7 @@ import SummaryCard from "@/components/SummaryCard";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuthorizedUser } from "@/hooks/useAuthorizedUser";
 
 type Employee = {
   id: string;
@@ -28,6 +29,7 @@ export default function EmployeesPage() {
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [readinessFilter, setReadinessFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuthorizedUser();
 
   useEffect(() => {
     async function fetchEmployees() {
@@ -100,12 +102,14 @@ export default function EmployeesPage() {
             </p>
           </div>
 
-          <Link
-            href="/employees/add"
-            className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
-            + Add Employee
-          </Link>
+          {!authLoading && user && user.role !== "viewer" && (
+            <Link
+              href="/employees/add"
+              className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              + Add Employee
+            </Link>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
