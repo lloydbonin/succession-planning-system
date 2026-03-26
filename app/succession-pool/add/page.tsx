@@ -4,6 +4,7 @@ import AppShell from "@/components/Appshell";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { requireRole } from "@/lib/requireRole";
 
 type EmployeeOption = {
   id: string;
@@ -18,6 +19,9 @@ type EmployeeOption = {
 
 export default function AddCandidatePage() {
   const router = useRouter();
+
+  // 🔐 Role protection state
+  const [allowed, setAllowed] = useState<boolean | null>(null);
 
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
@@ -72,6 +76,44 @@ export default function AddCandidatePage() {
       setTalentRank("Emerging Talent");
       setStatus("In Development");
     }
+  }
+
+  // 🔐 Check access on load
+  useEffect(() => {
+    async function checkAccess() {
+      const result = await requireRole(["admin", "editor"]);
+
+      if (!result.allowed) {
+        setAllowed(false);
+      } else {
+        setAllowed(true);
+      }
+    }
+
+    checkAccess();
+  }, []);
+
+  // 🔐 Loading state
+  if (allowed === null) {
+    return (
+      <AppShell>
+        <div className="p-6 text-black">Checking access...</div>
+      </AppShell>
+    );
+  }
+
+  // 🔐 Access denied
+  if (!allowed) {
+    return (
+      <AppShell>
+        <div className="p-6 text-center text-black">
+          <h1 className="text-xl font-bold">Access Denied</h1>
+          <p className="text-sm text-slate-500">
+            You do not have permission to access this page.
+          </p>
+        </div>
+      </AppShell>
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {

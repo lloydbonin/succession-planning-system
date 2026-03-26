@@ -2,12 +2,17 @@
 
 import AppShell from "@/components/Appshell";
 import { supabase } from "@/lib/supabase";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { requireRole } from "@/lib/requireRole";
 
 export default function AddEmployeePage() {
   const router = useRouter();
 
+  // 🔐 Role protection state
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+
+  // 🧾 Form state
   const [employeeId, setEmployeeId] = useState("");
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
@@ -21,6 +26,45 @@ export default function AddEmployeePage() {
   const [developmentPlan, setDevelopmentPlan] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // 🔐 Check access on load
+  useEffect(() => {
+    async function checkAccess() {
+      const result = await requireRole(["admin", "editor"]);
+
+      if (!result.allowed) {
+        setAllowed(false);
+      } else {
+        setAllowed(true);
+      }
+    }
+
+    checkAccess();
+  }, []);
+
+  // 🔐 Loading state
+  if (allowed === null) {
+    return (
+      <AppShell>
+        <div className="p-6 text-black">Checking access...</div>
+      </AppShell>
+    );
+  }
+
+  // 🔐 Access denied
+  if (!allowed) {
+    return (
+      <AppShell>
+        <div className="p-6 text-center text-black">
+          <h1 className="text-xl font-bold">Access Denied</h1>
+          <p className="text-sm text-slate-500">
+            You do not have permission to access this page.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // ✅ Submit handler
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -37,7 +81,8 @@ export default function AddEmployeePage() {
           readiness,
           training_status: trainingStatus,
           progress,
-          years_of_service: yearsOfService === "" ? null : Number(yearsOfService),
+          years_of_service:
+            yearsOfService === "" ? null : Number(yearsOfService),
           email: email || null,
           development_plan: developmentPlan || null,
         },
@@ -186,7 +231,9 @@ export default function AddEmployeePage() {
               min="0"
               value={yearsOfService}
               onChange={(e) =>
-                setYearsOfService(e.target.value === "" ? "" : Number(e.target.value))
+                setYearsOfService(
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
               }
               className="mt-1 w-full rounded-xl border px-4 py-2"
             />
