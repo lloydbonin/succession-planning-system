@@ -1,9 +1,30 @@
+"use client";
+
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
+
 export default function HomePage() {
+  useEffect(() => {
+    async function checkUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      // If logged in → go to dashboard
+      window.location.href = "/dashboard";
+    }
+
+    checkUser();
+  }, []);
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-100">
-      <h1 className="text-3xl font-bold text-slate-800">
-        Succession Planning Monitoring System Yey!
-      </h1>
-    </main>
+    <div className="flex min-h-screen items-center justify-center">
+      <p>Redirecting...</p>
+    </div>
   );
 }

@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutGrid, Users, Target, BookOpen, BarChart3} from "lucide-react";
+import { useAuthorizedUser } from "@/hooks/useAuthorizedUser";
+import { Shield } from "lucide-react";
 
 
 const navItems = [
@@ -12,10 +14,19 @@ const navItems = [
   { name: "Succession Pool", href: "/succession-pool", icon: Target },
   { name: "Training Records", href: "/training-records", icon: BookOpen },
   { name: "Reports", href: "/reports", icon: BarChart3 },
+
+    // 🔐 Admin only
+  {
+    name: "Admin Panel",
+    href: "/admin/users",
+    icon: Shield,
+    roles: ["admin"], // 👈 important
+  },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user, loading } = useAuthorizedUser();
 
   return (
     <aside className="flex h-screen sticky top-0 w-64 flex-col border-r border-slate-200 bg-white">
@@ -43,7 +54,18 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-4">
-        {navItems.map((item) => {
+        {navItems
+          .filter((item) => {
+            // if no roles defined → visible to all
+            if (!item.roles) return true;
+
+            // if still loading → hide protected items
+            if (loading) return false;
+
+            // show only if user's role is allowed
+            return user && item.roles.includes(user.role);
+          })
+          .map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
 
